@@ -1,0 +1,177 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  salesman
+  supervisor
+}
+
+enum UnitStatus {
+  available
+  reserved
+  booked
+}
+
+enum ReservationStatus {
+  reserved
+  paid
+  booked
+  declined
+}
+
+enum PaymentType {
+  cash
+  credit
+  installment
+  mortgage
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole @default(salesman)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reservations Reservation[]
+
+  @@map("users")
+}
+
+model Tower {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  floors Floor[]
+
+  @@map("towers")
+}
+
+model Floor {
+  id                Int      @id @default(autoincrement())
+  tower             Tower    @relation(fields: [towerId], references: [id])
+  towerId           Int
+  label             String
+  floorPlanImageUrl String
+  number            Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  units Unit[]
+
+  @@map("floors")
+}
+
+model RoomType {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  units Unit[]
+
+  @@map("room_types")
+}
+
+model Facility {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  units UnitFacility[]
+
+  @@map("facilities")
+}
+
+model Unit {
+  id            Int        @id @default(autoincrement())
+  floor         Floor      @relation(fields: [floorId], references: [id])
+  floorId       Int
+  roomType      RoomType   @relation(fields: [roomTypeId], references: [id])
+  roomTypeId    Int
+  unitCode      String     @unique
+  priceOffer    BigInt
+  semiGrossArea Float
+  status        UnitStatus
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  facilities   UnitFacility[]
+  images       UnitImage[]
+  reservations Reservation[]
+
+  @@map("units")
+}
+
+model UnitFacility {
+  id         Int      @id @default(autoincrement())
+  unit       Unit     @relation(fields: [unitId], references: [id])
+  unitId     Int
+  facility   Facility @relation(fields: [facilityId], references: [id])
+  facilityId Int
+
+  @@map("unit_facilities")
+}
+
+model UnitImage {
+  id          Int      @id @default(autoincrement())
+  unit        Unit     @relation(fields: [unitId], references: [id])
+  unitId      Int
+  imageUrl    String
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("unit_images")
+}
+
+model Reservation {
+  uuid                String            @id @default(uuid()) @db.Char(36)
+  salesman            User              @relation(fields: [salesmanId], references: [id])
+  salesmanId          Int
+  unit                Unit              @relation(fields: [unitId], references: [id])
+  unitId              Int
+  customer            Customer          @relation(fields: [customerId], references: [id])
+  customerId          Int
+  payment_proof_url   String
+  paymentType         PaymentType
+  mediaSourceCategory String
+  mediaSourceDesc     String
+  notes               String
+  status              ReservationStatus
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@map("reservations")
+}
+
+model Customer {
+  id             Int      @id @default(autoincrement())
+  name           String
+  ktpNumber      String
+  npwpNumber     String
+  email          String
+  phoneNumber    String
+  address        String
+  city           String
+  province       String
+  customerSource String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  reservations Reservation[]
+
+  @@map("customers")
+}
